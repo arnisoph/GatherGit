@@ -15,16 +15,11 @@ import yaml
 import logging
 import logging.config
 
-#from dulwich.repo import Repo
-#from dulwich.client import TCPGitClient
-#from dulwich import client as dulclient
-
 from git import Repo as _GitRepo
 from git import refs as _GitRefs
 
 # Third party libs
 import argparse
-import email.message
 import pprint
 
 
@@ -63,12 +58,6 @@ class ConfigParser(object):
                                         self.config[root][repo] = settings
                                     else:
                                         self.config[root][repo].update(settings)
-                            #elif root == 'filters':
-                            #    for account, filter_set in value.items():
-                            #        for filterset_name, filterset_data in filter_set.items():
-                            #            if account not in self.config[root].keys():
-                            #                self.config[root][account] = {}
-                            #            self.config[root][account].update({filterset_name: filterset_data})
 
     def dump(self):
         return self.config
@@ -235,20 +224,6 @@ def main():
     logger.debug('Starting new instance of %s', program_name)
     logger.debug('Raw configuration: %s', config)
 
-    #repo = Repo.init('testrepo')
-    #print(repo)
-    #repo.create_remote('origin', 'https://github.com/bechtoldt/mailfilter.git')
-    #repo.git.config('--add', 'remote.origin.fetch', '+refs/tags/*:refs/tags/*')
-    #repo.git.config('http.sslVerify', True)
-
-    #origin = repo.remotes[0]
-    #fetch_results = origin.fetch()
-    #for ref in repo.refs:
-    #    parted = ref.name.partition('/')
-    #    rspec = parted[2] if parted[2] else parted[0]
-    #    print(ref, parted, rspec)
-    #repo.git.checkout('master')
-
     caches = {}
     for cacheid, cache_settings in config.get('settings').get('cache').items():
         caches[cacheid] = Cache(settings=cache_settings)
@@ -275,7 +250,6 @@ def main():
 
             print(repo.get('name'), repo.get('remotes'), )
             update_info = cache.update(repo)
-            print(update_info)
             for branch in update_info:
                 print(branch[0], branch[2].author.name)
 

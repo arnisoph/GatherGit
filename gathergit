@@ -4,6 +4,9 @@
 """gathergit
 
 A description.
+
+TODO:
+ - do metadata parsing
 """
 
 from time import sleep
@@ -15,12 +18,12 @@ import yaml
 import logging
 import logging.config
 
-from git import Repo as _GitRepo
-from git import refs as _GitRefs
-
 # Third party libs
 import argparse
 import pprint
+from sh import rsync
+from git import Repo as _GitRepo
+from git import refs as _GitRefs
 
 
 def create_logger(program_name, config=None):
@@ -91,6 +94,7 @@ class GitRepo(object):
         new_commit = None
 
         if branch not in reporefs:
+            #fetch_info = gitremote.fetch(remote_ref)
             self.git.git.checkout(srcref, b=branch)
             gitref = self.get_ref(branch)
         else:
@@ -123,6 +127,10 @@ class GitRepo(object):
         for ref in refs:
             if name == str(ref):
                 return ref
+
+    def checkout(self, branch):
+        gitref = self.get_ref(branch)
+        return gitref.checkout(force=True)
 
     # Remotes
     def add_remotes(self, remotes):
@@ -164,7 +172,7 @@ class Repo(dict):
 class Cache(object):
     def __init__(self, settings):
         self.settings = settings
-        self.path = self.settings.get('path')
+        self.path = self.settings.get('path', '/tmp/gathergit-cache')
 
     def init(self):
         if not os.path.isdir(self.path):
@@ -180,12 +188,43 @@ class Cache(object):
 
         changed_versions = []
         for remote_name in remotes:
-            for refalias, refid in repo.get('deploy').items():
-                info, old_commit, new_commit = repo.git.update_ref(refid, refalias, remote_name)
+            for version, version_data in repo.get('deploy').items():
+                remote_ref = version_data.get('remote_ref')
+                info, old_commit, new_commit = repo.git.update_ref(remote_ref, version, remote_name)
                 info = info[0]
                 if new_commit != old_commit:
-                    changed_versions.append((refalias, old_commit, new_commit))
+                    changed_versions.append((repo, version, old_commit, new_commit))
         return changed_versions
+
+
+class Target(object):
+    def __init__(self, reposet_settings):
+        self.path = reposet_settings.get('target', '/tmp/gitgather-deployment')
+        self.init()
+
+    def init(self):
+        if not os.path.isdir(self.path):
+            os.makedirs(self.path)
+
+    def update(self, update_info):
+        versions = {}
+        version_list = None
+
+        for update in update_info:
+            repo, version, old_commit, new_commit = update
+            versions[version] = {'repo': repo, 'old_commit': old_commit, 'new_commit': new_commit}
+
+            dst_path = '{}/{}/{}/'.format(self.path, version, repo.get('name'))
+            src_path = '{}/{}'.format(repo.git.get_path(), repo.get('deploy').get(version).get('root'))
+            if not src_path.endswith('/'):
+                src_path += '/'
+            if not os.path.isdir(dst_path):
+                os.makedirs(dst_path)
+
+            repo.git.checkout(version)
+
+            print(version, dst_path)
+            print(rsync('--verbose', '--archive', '--checksum', '--delete', '--exclude=.git/', src_path, dst_path))
 
 
 def main():
@@ -234,7 +273,7 @@ def main():
         cache.init()
 
         for repoid, repo_settings in reposet_settings.get('repos').items():
-            if repo_settings.get('deploy', None) is None:
+            if repo_settings.get('deploy') is None:
                 continue
             remotes = repo_settings.get('remotes', None)
             if not remotes:
@@ -246,16 +285,27 @@ def main():
                     }
                 }
 
-            repo = Repo(name=repo_settings.get('name', repoid), remotes=remotes, deploy=repo_settings.get('deploy'), )
+            _deploy = repo_settings.get('deploy')
+            deploy = _deploy
+            for version, version_data in deploy.items():
+                if isinstance(version_data, str):
+                    deploy[version] = {'remote_ref': version_data}
+                else:
+                    schema = version_data.get('schema')
 
-            print(repo.get('name'), repo.get('remotes'), )
+                if 'root' not in deploy[version].keys():
+                    deploy[version]['root'] = ''
+
+            repo = Repo(name=repo_settings.get('name', repoid), remotes=remotes, deploy=deploy)
+            print(repo.get('name'), repo.get('remotes'))
+
             update_info = cache.update(repo)
-            for branch in update_info:
-                print(branch[0], branch[2].author.name)
 
-            #TODO do metadata parsing
+            target = Target(reposet_settings)
+            if update_info:
+                target.update(update_info)
 
-            # Everything is done, closing now
+    # Everything is done, closing now
     logger.debug('Shutting down gathergit..')
 
 

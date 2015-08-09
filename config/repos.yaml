@@ -1,6 +1,6 @@
 reposets:
   my_first_repo_set:
-    target: /tmp/ready-git-repos/
+    target: /tmp/ready-git-repos
     defaults:
       base_url: https://github.com
     repos:
@@ -19,4 +19,9 @@ reposets:
         repo: arbe/mytest
         url: file:///tmp/mytest
         deploy:
-          master: master
+          master:
+            remote_ref: master
+            root: w00t/
+          qa: b
+          dev: c21
+          prod: c

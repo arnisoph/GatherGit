@@ -20,7 +20,7 @@ import logging.config
 #from dulwich import client as dulclient
 
 from git import Repo as _GitRepo
-from git import refs as _refs
+from git import refs as _GitRefs
 
 # Third party libs
 import argparse
@@ -89,6 +89,7 @@ class GitRepo(object):
     # Refs
     def update_ref(self, remote_ref, branch, remote):
         gitremote = self.get_remote(remote)
+        gitref = None
         reporefs = self.get_refs()
         gitreporefs = self.get_refs(raw=True)
 
@@ -96,23 +97,28 @@ class GitRepo(object):
         if srcref not in reporefs:
             srcref = remote_ref
 
+        fetch_info = None
+        old_commit = None
+        new_commit = None
+
         if branch not in reporefs:
             self.git.git.checkout(srcref, b=branch)
+            gitref = self.get_ref(branch)
         else:
             gitref = self.get_ref(branch)
 
             if str(gitref.tracking_branch()) == srcref or str(gitref.tracking_branch()).endswith('/{}'.format(srcref)):
                 gitref.checkout(force=True)
             else:
-                gitref.set_reference(_refs.symbolic.SymbolicReference(self.git, None))
+                gitref.set_reference(_GitRefs.symbolic.SymbolicReference(self.git, None))
                 gitref.delete(self.git, branch)
                 return self.update_ref(remote_ref, branch, remote)
-
             old_commit = gitref.commit
-            #fetch_info = gitremote.fetch(refspec='{}'.format(remote_ref))
-            info = gitremote.pull(remote_ref)
 
-            return (info, old_commit, gitref.commit)
+        #fetch_info = gitremote.fetch(refspec='{}'.format(remote_ref))
+        fetch_info = gitremote.pull(remote_ref)
+        new_commit = gitref.commit
+        return (fetch_info, old_commit, new_commit)
 
     def get_refs(self, raw=False):
         gitrefs = []
@@ -189,7 +195,6 @@ class Cache(object):
                 info, old_commit, new_commit = repo.git.update_ref(refid, refalias, remote_name)
                 info = info[0]
                 if new_commit != old_commit:
-                    print('changed')
                     changed_versions.append((refalias, old_commit, new_commit))
         return changed_versions
 
@@ -254,6 +259,8 @@ def main():
         cache.init()
 
         for repoid, repo_settings in reposet_settings.get('repos').items():
+            if repo_settings.get('deploy', None) is None:
+                continue
             remotes = repo_settings.get('remotes', None)
             if not remotes:
                 remotes = {

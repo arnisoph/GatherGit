@@ -4,10 +4,10 @@ reposets:
     defaults:
       base_url: https://github.com
     repos:
-      #alternatives:
-      #  repo: puppet-community/puppet-alternatives
-      #  deploy:
-      #    master: master
+      alternatives:
+        repo: puppet-community/puppet-alternatives
+        deploy:
+          master: master
       apache:
         name: httpd
         repo: puppetlabs/puppetlabs-apache

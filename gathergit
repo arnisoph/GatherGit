@@ -207,23 +207,25 @@ class Target(object):
             os.makedirs(self.path)
 
     def update(self, update_info):
-        versions = {}
         version_list = None
 
         for update in update_info:
             repo, version, old_commit, new_commit = update
-            versions[version] = {'repo': repo, 'old_commit': old_commit, 'new_commit': new_commit}
-
+            repo.git.checkout(version)
             dst_path = '{}/{}/{}/'.format(self.path, version, repo.get('name'))
             src_path = '{}/{}'.format(repo.git.get_path(), repo.get('deploy').get(version).get('root'))
+
+            if not os.path.isdir(src_path):
+                src_path = repo.git.get_path()
+                if not os.path.isdir(src_path):
+                    raise 'w00t!'  #TODO
+
             if not src_path.endswith('/'):
                 src_path += '/'
             if not os.path.isdir(dst_path):
                 os.makedirs(dst_path)
 
-            repo.git.checkout(version)
-
-            print(version, dst_path)
+            print(version, src_path, dst_path)
             print(rsync('--verbose', '--archive', '--checksum', '--delete', '--exclude=.git/', src_path, dst_path))
 
 
@@ -294,7 +296,7 @@ def main():
                     schema = version_data.get('schema')
 
                 if 'root' not in deploy[version].keys():
-                    deploy[version]['root'] = ''
+                    deploy[version]['root'] = reposet_settings.get('defaults').get('root', '')
 
             repo = Repo(name=repo_settings.get('name', repoid), remotes=remotes, deploy=deploy)
             print(repo.get('name'), repo.get('remotes'))

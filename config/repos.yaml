@@ -3,11 +3,12 @@ reposets:
     target: /tmp/ready-git-repos
     defaults:
       base_url: https://github.com
+      root: states
     repos:
       alternatives:
         repo: puppet-community/puppet-alternatives
         deploy:
-          master: master
+          prod: master
       apache:
         name: httpd
         repo: puppetlabs/puppetlabs-apache
@@ -19,9 +20,41 @@ reposets:
         repo: arbe/mytest
         url: file:///tmp/mytest
         deploy:
-          master:
+          prod:
             remote_ref: master
             root: w00t/
           qa: b
           dev: c21
-          prod: c
+      skeleton:
+        repo: bechtoldt/saltstack-skeleton-formula
+        deploy:
+          prod: master
+      elasticsearch:
+        repo: bechtoldt/saltstack-elasticsearch-formula
+        deploy:
+          prod: master
+      iscdhcp:
+        repo: bechtoldt/saltstack-iscdhcp-formula
+        deploy:
+          prod:
+            remote_ref: master
+            root: iscdhcp
+      opennebula:
+        repo: bechtoldt/saltstack-opennebula-formula
+        deploy:
+          prod:
+            remote_ref: master
+            root: opennebula
+  contrib_files_repo_set:
+    target: /tmp/ready-git-repos-contrib
+    defaults:
+      base_url: https://github.com
+      root: contrib
+    repos:
+      opennebula:
+        repo: bechtoldt/saltstack-opennebula-formula
+        deploy:
+          prod:
+            remote_ref: master
+
+

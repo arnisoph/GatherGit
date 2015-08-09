@@ -1,0 +1,22 @@
+reposets:
+  my_first_repo_set:
+    target: /tmp/ready-git-repos/
+    defaults:
+      base_url: https://github.com
+    repos:
+      #alternatives:
+      #  repo: puppet-community/puppet-alternatives
+      #  deploy:
+      #    master: master
+      apache:
+        name: httpd
+        repo: puppetlabs/puppetlabs-apache
+        url: https://github.com/puppetlabs/puppetlabs-apache
+        deploy:
+          dev: master # branch
+          prod: 0.8.0 # tag
+      test:
+        repo: arbe/mytest
+        url: file:///tmp/mytest
+        deploy:
+          master: master

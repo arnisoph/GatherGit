@@ -133,25 +133,22 @@ class GitRepo(object):
     def add_remotes(self, remotes):
         for remote in remotes:
             if remote not in self.get_remotes():
-                gitremote = self.git.create_remote(remote, remotes.get(remote).get('url')) #TOOD
+                gitremote = self.git.create_remote(remote, remotes.get(remote).get('url'))  #TOOD
                 self.git.git.config('--add', 'remote.{}.fetch'.format(remote), '+refs/tags/*:refs/tags/*')
                 gitremote.fetch()
 
     def get_remote(self, name):
-        i=0
+        i = 0
         for remote in self.git.remotes:
             if str(remote) == name:
                 return self.git.remotes[i]
-            i = i+1
-
+            i = i + 1
 
     def get_remotes(self):
         remotes = []
         for remote in self.git.remotes:
             remotes.append(str(remote))
         return remotes
-
-
 
     # Filesystem
     def set_path(self, path):
@@ -181,7 +178,7 @@ class Cache(object):
     def update(self, repo):
         remotes = repo.get('remotes')
 
-        repo_path = '{}/{}'.format(self.path, remotes.get(list(remotes.keys())[0]).get('repo')) #TODO
+        repo_path = '{}/{}'.format(self.path, remotes.get(list(remotes.keys())[0]).get('repo'))  #TODO
         repo.git.set_path(repo_path)
         repo.git.init()
         repo.git.add_remotes(remotes)
@@ -233,7 +230,6 @@ def main():
     logger.debug('Starting new instance of %s', program_name)
     logger.debug('Raw configuration: %s', config)
 
-
     #repo = Repo.init('testrepo')
     #print(repo)
     #repo.create_remote('origin', 'https://github.com/bechtoldt/mailfilter.git')
@@ -260,18 +256,17 @@ def main():
         for repoid, repo_settings in reposet_settings.get('repos').items():
             remotes = repo_settings.get('remotes', None)
             if not remotes:
-                remotes = {'origin': {'url': repo_settings.get('url',
-                                                               '{}/{}'.format(reposet_settings.get('defaults').get('base_url'),
-                                                                              repo_settings.get('repo'))),
-                                      'repo': repo_settings.get('repo'),}}
+                remotes = {
+                    'origin': {
+                        'url': repo_settings.get('url', '{}/{}'.format(reposet_settings.get('defaults').get('base_url'),
+                                                                       repo_settings.get('repo'))),
+                        'repo': repo_settings.get('repo'),
+                    }
+                }
 
+            repo = Repo(name=repo_settings.get('name', repoid), remotes=remotes, deploy=repo_settings.get('deploy'), )
 
-            repo = Repo(name=repo_settings.get('name', repoid),
-                        remotes=remotes,
-                        deploy=repo_settings.get('deploy'),)
-
-            print(repo.get('name'),
-                  repo.get('remotes'),)
+            print(repo.get('name'), repo.get('remotes'), )
             update_info = cache.update(repo)
             print(update_info)
             for branch in update_info:
@@ -279,8 +274,7 @@ def main():
 
             #TODO do metadata parsing
 
-
-    # Everything is done, closing now
+            # Everything is done, closing now
     logger.debug('Shutting down gathergit..')
 
 

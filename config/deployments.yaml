@@ -17,9 +17,16 @@ deployments:
         defaults:
           repo: puppetlabs/puppetlabs-apache # upstream repository
         branches:
+          test: master
           dev: master # branch
           prod:
             ref: 0.8.0 # tag
+      foo:
+        defaults:
+          repo: arbe/amytest
+          url: file:///tmp/mytest
+        branches:
+          dev: master
       test:
         defaults:
           repo: arbe/amytest
@@ -29,31 +36,31 @@ deployments:
             ref: master
             root: w00t/
           qa: b
-          dev: c21
+          #dev: master
           prod3: branchme1
-      skeleton:
-        defaults:
-          repo: bechtoldt/saltstack-skeleton-formula
-        branches:
-          prod: master
-      elasticsearch:
-        defaults:
-          repo: bechtoldt/saltstack-elasticsearch-formula
-        branches:
-          prod: master
-      iscdhcp:
-        branches:
-          prod:
-            ref: master
-            root: iscdhcp
-            repo: bechtoldt/saltstack-iscdhcp-formula
-      opennebula:
-        defaults:
-          repo: bechtoldt/saltstack-opennebula-formula
-        branches:
-          prod:
-            ref: master
-            root: opennebula
+#      skeleton:
+#        defaults:
+#          repo: bechtoldt/saltstack-skeleton-formula
+#        branches:
+#          prod: master
+#      elasticsearch:
+#        defaults:
+#          repo: bechtoldt/saltstack-elasticsearch-formula
+#        branches:
+#          prod: master
+#      iscdhcp:
+#        branches:
+#          prod:
+#            ref: master
+#            root: iscdhcp
+#            repo: bechtoldt/saltstack-iscdhcp-formula
+#      opennebula:
+#        defaults:
+#          repo: bechtoldt/saltstack-opennebula-formula
+#        branches:
+#          prod:
+#            ref: master
+#            root: opennebula
 #  contrib_files_repo_set:
 #    target: /tmp/ready-git-repos-contrib
 #    defaults:

@@ -33,3 +33,5 @@ settings:
   cache:
     common:
       path: /tmp/cache
+    contrib:
+      path: /tmp/cache-contrib

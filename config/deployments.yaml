@@ -1,0 +1,225 @@
+deployments:
+  my_first_repo_set:
+    target: /tmp/ready-git-repos
+    defaults:
+      base_url: https://github.com
+      root: states
+      cache: common
+    repos:
+      alternatives:
+        defaults:
+          repo: puppet-community/puppet-alternatives
+        branches:
+          prod: master
+          dev: 0.1.0
+      apache:
+        name: httpd
+        defaults:
+          repo: puppetlabs/puppetlabs-apache # upstream repository
+        branches:
+          dev: master # branch
+          prod:
+            ref: 0.8.0 # tag
+      test:
+        defaults:
+          repo: arbe/amytest
+          url: file:///tmp/mytest
+        branches:
+          prod:
+            ref: master
+            root: w00t/
+          qa: b
+          dev: c21
+          prod3: branchme1
+      skeleton:
+        defaults:
+          repo: bechtoldt/saltstack-skeleton-formula
+        branches:
+          prod: master
+      elasticsearch:
+        defaults:
+          repo: bechtoldt/saltstack-elasticsearch-formula
+        branches:
+          prod: master
+      iscdhcp:
+        branches:
+          prod:
+            ref: master
+            root: iscdhcp
+            repo: bechtoldt/saltstack-iscdhcp-formula
+      opennebula:
+        defaults:
+          repo: bechtoldt/saltstack-opennebula-formula
+        branches:
+          prod:
+            ref: master
+            root: opennebula
+#  contrib_files_repo_set:
+#    target: /tmp/ready-git-repos-contrib
+#    defaults:
+#      base_url: https://github.com
+#      root: contrib
+#      cache: common
+#    repos:
+#      opennebula:
+#        url: git@github.com:bechtoldt/saltstack-opennebula-formula.git # SSH
+#        defaults:
+#          repo: bechtoldt/saltstack-opennebula-formula
+#        branches:
+#          prod:
+#            ref: master
+#  saltstack_standard_states_env:
+#    target: /tmp/saltstack/states
+#    cache: common
+#    defaults:
+#      base_url: 'git@github.com:'
+#    repos:
+#      amavis:
+#        repo: bechtoldt/saltstack-amavis-formula.git
+#        deploy:
+#          prod:
+#            ref: master
+#      aptcacherng:
+#        repo: bechtoldt/saltstack-aptcacherng-formula.git
+#        deploy:
+#          prod:
+#            ref: master
+#      bash:
+#        repo: bechtoldt/saltstack-bash-formula.git
+#        deploy:
+#          prod:
+#            ref: master
+#      binddns:
+#        repo: bechtoldt/saltstack-binddns-formula.git
+#        deploy:
+#          prod:
+#            ref: master
+#      clamav:
+#        repo: bechtoldt/saltstack-clamav-formula.git
+#        deploy:
+#          prod:
+#            ref: master
+#      cron:
+#        repo: bechtoldt/saltstack-cron-formula.git
+#      crypto:
+#        repo: bechtoldt/saltstack-crypto-formula.git
+#      dnsmasq:
+#        repo: bechtoldt/saltstack-dnsmasq-formula.git
+#      dovecot:
+#        repo: bechtoldt/saltstack-dovecot-formula.git
+#      duply:
+#        repo: bechtoldt/saltstack-duply-formula.git
+#      ebtables:
+#        repo: bechtoldt/saltstack-ebtables-formula.git
+#      elasticsearch:
+#        repo: bechtoldt/saltstack-elasticsearch-formula.git
+#      ferm:
+#        repo: bechtoldt/saltstack-ferm-formula.git
+#      file:
+#        repo: bechtoldt/saltstack-file-formula.git
+#      foreman:
+#        repo: bechtoldt/saltstack-foreman-formula.git
+#      git:
+#        repo: bechtoldt/saltstack-git-formula.git
+#      gitlab:
+#        repo: bechtoldt/saltstack-gitlab-formula.git
+#      grub:
+#        repo: bechtoldt/saltstack-grub-formula.git
+#      haproxy:
+#        repo: bechtoldt/saltstack-haproxy-formula.git
+#      httpd:
+#        repo: bechtoldt/saltstack-httpd-formula.git
+#      iscdhcp:
+#        repo: bechtoldt/saltstack-iscdhcp-formula.git
+#      java:
+#        repo: bechtoldt/saltstack-java-formula.git
+#      keepalived:
+#        repo: bechtoldt/saltstack-keepalived-formula.git
+#      kibana:
+#        repo: bechtoldt/saltstack-kibana-formula.git
+#      libvirt:
+#        repo: bechtoldt/saltstack-libvirt-formula.git
+#      linux:
+#        repo: bechtoldt/saltstack-linux-formula.git
+#      liveconfig:
+#        repo: bechtoldt/saltstack-liveconfig-formula.git
+#      logstash:
+#        repo: bechtoldt/saltstack-logstash-formula.git
+#      mongodb:
+#        repo: bechtoldt/saltstack-mongodb-formula.git
+#      myback:
+#        repo: bechtoldt/saltstack-myback-formula.git
+#      mysql:
+#        repo: bechtoldt/saltstack-mysql-formula.git
+#      network:
+#        repo: bechtoldt/saltstack-network-formula.git
+#      nfs:
+#        repo: bechtoldt/saltstack-nfs-formula.git
+#      nginx:
+#        repo: bechtoldt/saltstack-nginx-formula.git
+#      omd:
+#        repo: bechtoldt/saltstack-omd-formula.git
+#      opennebula:
+#        repo: bechtoldt/saltstack-opennebula-formula.git
+#      openvswitch:
+#        repo: bechtoldt/saltstack-openvswitch-formula.git
+#      pam:
+#        repo: bechtoldt/saltstack-pam-formula.git
+#      percona:
+#        repo: bechtoldt/saltstack-percona-formula.git
+#      php:
+#        repo: bechtoldt/saltstack-php-formula.git
+#      postfix:
+#        repo: bechtoldt/saltstack-postfix-formula.git
+#      postgresql:
+#        repo: bechtoldt/saltstack-postgresql-formula.git
+#      powerdns:
+#        repo: bechtoldt/saltstack-powerdns-formula.git
+#      proftpd:
+#        repo: bechtoldt/saltstack-proftpd-formula.git
+#      repos:
+#        repo: bechtoldt/saltstack-repos-formula.git
+#      repositorio:
+#        repo: bechtoldt/saltstack-repositorio-formula.git
+#      rex:
+#        repo: bechtoldt/saltstack-rex-formula.git
+#      rssh:
+#        repo: bechtoldt/saltstack-rssh-formula.git
+#      salt:
+#        repo: bechtoldt/saltstack-salt-formula.git
+#      skeleton:
+#        repo: bechtoldt/saltstack-skeleton-formula.git
+#      spamassassin:
+#        repo: bechtoldt/saltstack-spamassassin-formula.git
+#      squid:
+#        repo: bechtoldt/saltstack-squid-formula.git
+#      ssh:
+#        repo: bechtoldt/saltstack-ssh-formula.git
+#      sudo:
+#        repo: bechtoldt/saltstack-sudo-formula.git
+#      sysctl:
+#        repo: bechtoldt/saltstack-sysctl-formula.git
+#      sysvinit:
+#        repo: bechtoldt/saltstack-sysvinit-formula.git
+#      tftp:
+#        repo: bechtoldt/saltstack-tftp-formula.git
+#      time:
+#        repo: bechtoldt/saltstack-time-formula.git
+#      tinc:
+#        repo: bechtoldt/saltstack-tinc-formula.git
+#      tomcat:
+#        repo: bechtoldt/saltstack-tomcat-formula.git
+#      tools:
+#        repo: bechtoldt/saltstack-tools-formula.git
+#      users:
+#        repo: bechtoldt/saltstack-users-formula.git
+#      varnish:
+#        repo: bechtoldt/saltstack-varnish-formula.git
+#      vim:
+#        repo: bechtoldt/saltstack-vim-formula.git
+#      webapp:
+#        repo: bechtoldt/saltstack-webapp-formula.git
+#      yubikey:
+#        repo: bechtoldt/saltstack-yubikey-formula.git
+#      zsh:
+#        repo: bechtoldt/saltstack-zsh-formula.git

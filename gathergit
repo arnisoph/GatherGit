@@ -39,7 +39,7 @@ class ConfigParser(object):
         self.confdir = confdir
 
         if not config:
-            config = {'settings': {}, 'reposets': {}}
+            config = {'settings': {}, 'deployments': {}}
         self.config = config
 
         self.parse_directory()
@@ -55,7 +55,7 @@ class ConfigParser(object):
                         for root, value in data.items():
                             if root == 'settings':
                                 self.config[root] = value
-                            elif root == 'reposets':
+                            elif root == 'deployments':
                                 for repo, settings in value.items():
                                     if repo not in self.config[root].keys():
                                         self.config[root][repo] = settings
@@ -79,39 +79,66 @@ class GitRepo(object):
             self.git = _GitRepo(self.path)
 
     # Refs
-    def update_ref(self, remote_ref, branch, remote):
-        gitremote = self.get_remote(remote)
+    def update_ref(self, remote_ref, remote_name):
+        gitremote = self.get_remote(remote_name)
         gitref = None
         reporefs = self.get_refs()
         gitreporefs = self.get_refs(raw=True)
+        already_fetched = False
+        ret = {
+            'update_info': None,
+            'old_commit': None,
+            'new_commit': None,
+            'ref': None,
+            'updated': False,
+        }
 
-        srcref = '{}/{}'.format(remote, remote_ref)
+        srcref = '{}/{}'.format(remote_name, remote_ref)
         if srcref not in reporefs:
-            srcref = remote_ref
+            if remote_ref not in reporefs:
+                ret['updated'] = True
 
-        fetch_info = None
-        old_commit = None
-        new_commit = None
+            fetch_info = gitremote.fetch()
+            reporefs = self.get_refs()
+            gitreporefs = self.get_refs(raw=True)
+            gitref = self.get_ref(remote_ref)
 
-        if branch not in reporefs:
-            #fetch_info = gitremote.fetch(remote_ref)
-            self.git.git.checkout(srcref, b=branch)
-            gitref = self.get_ref(branch)
+            if srcref not in reporefs:
+                # ref is a tag
+                srcref = remote_ref
+                # is it a tag we haven't downloaded yet?
+                #if srcref not in reporefs:
+                #    #fetch_info = gitremote.fetch(srcref)
+                #reporefs = self.get_refs()
+                if srcref in reporefs:
+                    # it is a new tag!
+                    ret['new_commit'] = gitref.commit
+                    ret['ref'] = remote_ref
+                    return ret
+
+        if remote_ref not in reporefs:
+            self.git.git.checkout(srcref, b=remote_ref)
+            gitref = self.get_ref(remote_ref)
+            ret['updated'] = True
         else:
-            gitref = self.get_ref(branch)
+            gitref = self.get_ref(remote_ref)
 
-            if str(gitref.tracking_branch()) == srcref or str(gitref.tracking_branch()).endswith('/{}'.format(srcref)):
-                gitref.checkout(force=True)
-            else:
-                gitref.set_reference(_GitRefs.symbolic.SymbolicReference(self.git, None))
-                gitref.delete(self.git, branch)
-                return self.update_ref(remote_ref, branch, remote)
-            old_commit = gitref.commit
+            if not isinstance(gitref, _GitRefs.tag.TagReference):
+                if str(gitref.tracking_branch()) == srcref or str(gitref.tracking_branch()).endswith('/{}'.format(srcref)):
+                    gitref.checkout(force=True)
+                #else:
+                #    print('yaaaaarp!')
+                #    gitref.set_reference(_GitRefs.symbolic.SymbolicReference(self.git, None))
+                #    gitref.delete(self.git, remote_ref)
+                #    return self.update_ref(remote_ref, remote_name)
+            ret['old_commit'] = gitref.commit
 
-        #fetch_info = gitremote.fetch(refspec='{}'.format(remote_ref))
-        fetch_info = gitremote.pull(remote_ref)
-        new_commit = gitref.commit
-        return (fetch_info, old_commit, new_commit)
+        if not isinstance(gitref, _GitRefs.tag.TagReference):
+            ret['update_info'] = gitremote.pull(remote_ref)
+        ret['ref'] = remote_ref
+        ret['new_commit'] = gitref.commit
+        ret['updated'] = ret['old_commit'] != ret['new_commit']
+        return ret
 
     def get_refs(self, raw=False):
         gitrefs = []
@@ -134,10 +161,10 @@ class GitRepo(object):
 
     # Remotes
     def add_remotes(self, remotes):
-        for remote in remotes:
-            if remote not in self.get_remotes():
-                gitremote = self.git.create_remote(remote, remotes.get(remote).get('url'))  #TOOD
-                self.git.git.config('--add', 'remote.{}.fetch'.format(remote), '+refs/tags/*:refs/tags/*')
+        for remote_name, remote_settings in remotes.items():
+            if remote_name not in self.get_remotes():
+                gitremote = self.git.create_remote(remote_name, remote_settings.get('url'))  #TOOD
+                self.git.git.config('--add', 'remote.{}.fetch'.format(remote_name), '+refs/tags/*:refs/tags/*')
                 gitremote.fetch()
 
     def get_remote(self, name):
@@ -162,14 +189,47 @@ class GitRepo(object):
 
 
 class Repo(dict):
-    def __init__(self, name, remotes, deploy, gitrepo=GitRepo()):
+    def __init__(self, name, branches=None, gitrepo=GitRepo()):
         self['name'] = name
-        self['remotes'] = remotes
-        self['deploy'] = deploy
+        self['branches'] = branches or {}
         self.git = gitrepo
+
+    def add_branches(self, branches, repo_settings, deployment_settings):
+        #if 'base_url' not in branch_defaults and 'base_url' in repo_settings.get('defaults', {}).keys():
+        #    branch_defaults['base_url'] = repo_settings.get('base_url')
+
+        for branch, _branch_settings in branches.items():
+            branch_name = str(branch)
+            branch_settings = _branch_settings
+
+            # REF
+            if isinstance(_branch_settings, str) or isinstance(_branch_settings, float) or isinstance(_branch_settings, int):
+                branch_settings = {'ref': str(_branch_settings)}
+            if not isinstance(branch_settings.get('ref'), str):
+                branch_settings['ref'] = str(branch_settings['ref'])
+
+            if branch_name not in self['branches'].keys() or True:
+                self['branches'][branch_name] = branch_settings
+            else:
+                self['branches'][branch_name].update(branch_settings)
+
+            # REPO
+            if 'repo' not in self['branches'][branch_name].keys():
+                self['branches'][branch_name]['repo'] = repo_settings.get('defaults', {}).get('repo', self['name'])
+
+            # URL
+            if 'url' not in self['branches'][branch_name].keys():
+                url = repo_settings.get('defaults', {}).get('url', deployment_settings.get('defaults', {}).get('url'))
+                if url is None:
+                    base_url = self['branches'][branch_name].get('base_url', repo_settings.get('defaults', {}).get(
+                        'base_url', deployment_settings.get('defaults', {}).get('base_url')))
+                    url = '{}/{}'.format(base_url, self['branches'][branch_name]['repo'])
+
+                self['branches'][branch_name]['url'] = url
 
 
 class Cache(object):
+    """Cache representation of a repo"""
     def __init__(self, settings):
         self.settings = settings
         self.path = self.settings.get('path', '/tmp/gathergit-cache')
@@ -179,25 +239,32 @@ class Cache(object):
             os.makedirs(self.path)
 
     def update(self, repo):
-        remotes = repo.get('remotes')
+        branches = repo.get('branches')
+        changed_refs = []
 
-        repo_path = '{}/{}'.format(self.path, remotes.get(list(remotes.keys())[0]).get('repo'))  #TODO
-        repo.git.set_path(repo_path)
-        repo.git.init()
-        repo.git.add_remotes(remotes)
+        for branch_name in sorted(list(branches.keys())):
+            branch_settings = branches[branch_name]
+            repo_path = '{}/{}'.format(self.path, branch_settings.get('repo'))
 
-        changed_versions = []
-        for remote_name in remotes:
-            for version, version_data in repo.get('deploy').items():
-                remote_ref = version_data.get('remote_ref')
-                info, old_commit, new_commit = repo.git.update_ref(remote_ref, version, remote_name)
-                info = info[0]
-                if new_commit != old_commit:
-                    changed_versions.append((repo, version, old_commit, new_commit))
-        return changed_versions
+            repo['remotes'] = {
+                'origin': {
+                    'url': branch_settings.get('url'),
+                    }
+                }
+
+            repo.git.set_path(repo_path)
+            repo.git.init()
+            repo.git.add_remotes(repo['remotes'])
+
+            update_info = repo.git.update_ref(branch_settings.get('ref'), 'origin')
+            if update_info.get('updated'):
+                changed_refs.append(update_info)
+        return changed_refs
 
 
 class Target(object):
+    """Represents a deployment target, one specific repo version set to deploy"""
+
     def __init__(self, reposet_settings):
         self.path = reposet_settings.get('target', '/tmp/gitgather-deployment')
         self.init()
@@ -206,14 +273,12 @@ class Target(object):
         if not os.path.isdir(self.path):
             os.makedirs(self.path)
 
-    def update(self, update_info):
-        version_list = None
-
-        for update in update_info:
-            repo, version, old_commit, new_commit = update
-            repo.git.checkout(version)
-            dst_path = '{}/{}/{}/'.format(self.path, version, repo.get('name'))
-            src_path = '{}/{}'.format(repo.git.get_path(), repo.get('deploy').get(version).get('root'))
+    def update(self, repo, update_infos):
+        for repo_full, repo_update_info in update_infos.items():
+            local_branch, old_commit, new_commit = repo_update_info.get('update_info')
+            repo.git.checkout(local_branch)
+            dst_path = '{}/{}/{}/'.format(self.path, local_branch, repo.get('name'))
+            src_path = '{}/{}'.format(repo.git.get_path(), repo.get('deploy').get(local_branch).get('root'))
 
             if not os.path.isdir(src_path):
                 src_path = repo.git.get_path()
@@ -225,7 +290,7 @@ class Target(object):
             if not os.path.isdir(dst_path):
                 os.makedirs(dst_path)
 
-            print(version, src_path, dst_path)
+            print(local_branch, src_path, dst_path)
             print(rsync('--verbose', '--archive', '--checksum', '--delete', '--exclude=.git/', src_path, dst_path))
 
 
@@ -234,7 +299,7 @@ def main():
     program_name = 'gathergit'
     parser = argparse.ArgumentParser(prog=program_name, description='A description')
 
-    # General args
+    # general args
     parser.add_argument('-V', action='version', version='%(prog)s {version}'.format(version=version))
     parser.add_argument('-t', '--test',
                         action='store_true',
@@ -251,64 +316,75 @@ def main():
     confdir = parser_results.confdir
     test = parser_results.test
 
-    # Config Parsing
+    # config parsing
     cfg_parser = ConfigParser(confdir)
     config = cfg_parser.dump()
     if test is not None:
         config['settings']['test'] = test
 
-    # Logging
+    # logging
     logconfig = config.get('settings', {}).get('logging', {})
     logger = create_logger(program_name, logconfig)
 
-    # Let's start working now
+    # let's start working now
     logger.debug('Starting new instance of %s', program_name)
     logger.debug('Raw configuration: %s', config)
 
-    caches = {}
+    cachesets = {}
     for cacheid, cache_settings in config.get('settings').get('cache').items():
-        caches[cacheid] = Cache(settings=cache_settings)
+        cachesets[cacheid] = Cache(settings=cache_settings)
 
-    for reposetid, reposet_settings in config.get('reposets').items():
-        target = reposet_settings.get('target', None)
-        cache = caches[reposet_settings.get('cache', 'common')]
-        cache.init()
+    # collecting deployment configuration
+    deployments = {}
+    repolists = {}
+    for deployment_name, deployment_settings in config.get('deployments', {}).items():
+        repos = deployment_settings.get('repos')
 
-        for repoid, repo_settings in reposet_settings.get('repos').items():
-            if repo_settings.get('deploy') is None:
+        if repos is None:
+            continue
+
+        deployments[deployment_name] = {'target': deployment_settings.get('target'), 'defaults': deployment_settings.get('defaults', {})}
+        if deployment_name not in repolists.keys():
+            repolists[deployment_name] = {}
+        repolists[deployment_name].update(repos)
+
+    # updating caches
+    for deployment_name in sorted(list(repolists.keys())):
+        repolist = repolists[deployment_name]
+
+        for repoid in sorted(list(repolist.keys())):
+            repo_settings = repolist[repoid]
+            branches = repo_settings.get('branches')
+            if branches is None:
                 continue
-            remotes = repo_settings.get('remotes', None)
-            if not remotes:
-                remotes = {
-                    'origin': {
-                        'url': repo_settings.get('url', '{}/{}'.format(reposet_settings.get('defaults').get('base_url'),
-                                                                       repo_settings.get('repo'))),
-                        'repo': repo_settings.get('repo'),
-                    }
-                }
+            repo = Repo(name=repo_settings.get('name', repoid))
+            repo.add_branches(branches, repo_settings, deployments[deployment_name])
 
-            _deploy = repo_settings.get('deploy')
-            deploy = _deploy
-            for version, version_data in deploy.items():
-                if isinstance(version_data, str):
-                    deploy[version] = {'remote_ref': version_data}
-                else:
-                    schema = version_data.get('schema')
-
-                if 'root' not in deploy[version].keys():
-                    deploy[version]['root'] = reposet_settings.get('defaults').get('root', '')
-
-            repo = Repo(name=repo_settings.get('name', repoid), remotes=remotes, deploy=deploy)
-            print(repo.get('name'), repo.get('remotes'))
-
+            cache = cachesets[repo_settings.get('cache', deployments.get(deployment_name).get('defaults', {}).get('cache', 'common'))]
+            cache.init()
             update_info = cache.update(repo)
 
-            target = Target(reposet_settings)
-            if update_info:
-                target.update(update_info)
+            print(repoid, update_info)
+            #print("\n\n")
+            #break
+        #break
+
+            #print(repo['name'], repo['branches'])
+    #pprint.pprint(deployments)
+    #pprint.pprint(reposets)
+    sys.exit()
+
+    #for repo_full, repo_update_info in update_infos.items():
+    #    local_branch, old_commit, new_commit = repo_update_info.get('update_info')
+    #    reposet_settings = repo_update_info.get('reposet_settings')
+
+    #for update_info in update_infos:
+    #    target = Target(reposet_settings)
+    #    if update_info:
+    #        target.update(repo, update_info)
 
     # Everything is done, closing now
-    logger.debug('Shutting down gathergit..')
+    logger.debug('Shutting down..')
 
 
 if __name__ == '__main__':

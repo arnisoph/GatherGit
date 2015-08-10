@@ -30,7 +30,7 @@ settings:
         level: DEBUG
         #handlers: [console, info_file_handler, error_file_handler]
         handlers: [console, standard_file_handler]
-  cache:
+  caches:
     common:
       path: /tmp/cache
     contrib:

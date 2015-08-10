@@ -17,6 +17,7 @@ import sys
 import yaml
 import logging
 import logging.config
+import collections
 
 # Third party libs
 import argparse
@@ -37,7 +38,7 @@ class Helper(object):
 
     @staticmethod
     def sorted_dict(var):
-        ret = {}
+        ret = collections.OrderedDict()
         for key in sorted(list(var.keys())):
             ret[key] = var[key]
         return ret
@@ -94,7 +95,15 @@ class GitRepo(object):
         reporefs = self.get_refs()
         gitreporefs = self.get_refs(raw=True)
         already_fetched = False
-        ret = {'update_info': None, 'old_commit': None, 'new_commit': None, 'ref': None, 'updated': False}
+        ret = {
+            'update_info': None,
+            'repo': repo_name,
+            'url': gitremote.config_reader.get('url'),
+            'old_commit': None,
+            'new_commit': None,
+            'ref': None,
+            'updated': False
+        }
 
         srcref = '{}/{}'.format(remote_name, remote_ref)
         if srcref not in reporefs:
@@ -109,10 +118,6 @@ class GitRepo(object):
             if srcref not in reporefs:
                 # ref is a tag
                 srcref = remote_ref
-                # is it a tag we haven't downloaded yet?
-                #if srcref not in reporefs:
-                #    #fetch_info = gitremote.fetch(srcref)
-                #reporefs = self.get_refs()
                 if srcref in reporefs:
                     # it is a new tag!
                     ret['new_commit'] = gitref.commit
@@ -130,7 +135,6 @@ class GitRepo(object):
                 if str(gitref.tracking_branch()) == srcref or str(gitref.tracking_branch()).endswith('/{}'.format(srcref)):
                     gitref.checkout(force=True)
                 #else:
-                #    print('yaaaaarp!')
                 #    gitref.set_reference(_GitRefs.symbolic.SymbolicReference(self.git, None))
                 #    gitref.delete(self.git, remote_ref)
                 #    return self.update_ref(remote_ref, remote_name)
@@ -156,12 +160,18 @@ class GitRepo(object):
     def get_ref(self, name):
         refs = self.get_refs(raw=True)
         for ref in refs:
-            if name == str(ref):
+            if str(name) == str(ref):
                 return ref
 
     def checkout(self, branch):
         gitref = self.get_ref(branch)
-        return gitref.checkout(force=True)
+        if isinstance(gitref, _GitRefs.tag.TagReference):
+            return self.git.git.checkout(gitref.commit)  #TODO this is only a workaround
+        elif isinstance(gitref, _GitRefs.head.Head):
+            return gitref.checkout(force=True)
+        else:
+            print(type(gitref))
+            raise 'TODO'
 
     # Remotes
     def add_remotes(self, remotes):
@@ -193,17 +203,15 @@ class GitRepo(object):
 
 
 class Repo(dict):
-    def __init__(self, name, branches=None, defaults=None, gitrepo=GitRepo()):
+    def __init__(self, name, branches=None, defaults=None, path=None, target=None, gitrepo=None):
         self['name'] = name
         self['defaults'] = defaults or {}
         self['branches'] = branches or {}
         self['updates'] = {}
-        self.git = gitrepo
+        self['target'] = target or '/tmp/gitgather-deployment'
+        self.git = gitrepo or GitRepo()
 
     def add_branches(self, branches, deployment_settings):
-        #if 'base_url' not in branch_defaults and 'base_url' in repo_settings.get('defaults', {}).keys():
-        #    branch_defaults['base_url'] = repo_settings.get('base_url')
-
         for branch, _branch_settings in branches.items():
             branch_name = str(branch)
             branch_settings = _branch_settings
@@ -233,6 +241,21 @@ class Repo(dict):
 
                 self['branches'][branch_name]['url'] = url
 
+    def sync(self, local_branch, remote_branch, root=''):
+        src_path = '{}/{}'.format(self.git.get_path(), root)
+        dst_path = '{}/{}/{}/'.format(self.get('target'), local_branch, self.get('name'))
+
+        if not os.path.isdir(dst_path):
+            os.makedirs(dst_path)
+        if not src_path.endswith('/'):
+            src_path += '/'
+        if not dst_path.endswith('/'):
+            dst_path += '/'
+
+        self.git.checkout(remote_branch)
+
+        print(rsync('--verbose', '--archive', '--checksum', '--delete', '--exclude=.git/', src_path, dst_path))  #TODO
+
 
 class Repoindex(dict):
     def __init__(self, index=None):
@@ -242,15 +265,47 @@ class Repoindex(dict):
         if deployment_name not in self.keys():
             self[deployment_name] = {}
         if repo_name not in self[deployment_name].keys():
-            self[deployment_name][repo_name] = self.verify_repo_settings(repo)
+            self[deployment_name][repo_name] = self.verify_repo(repo)
         else:
             raise 'TOOD'
 
-    def verify_repo_settings(self, repo):
+    def verify_repo(self, repo):
         if not repo.get('defaults').get('cache'):
             repo['defaults']['cache'] = 'common'
-
         return repo
+
+    def sync_repos(self, sync_all=False):
+        ret = {}
+
+        if sync_all:
+            for deployment_name, repolist in Helper.sorted_dict(self).items():
+                for repo_name, repo in Helper.sorted_dict(repolist).items():
+                    #print(deployment_name, '=====>', repo.get('name'), repo.get('updates'))
+                    for branch_name, branch_settings in Helper.sorted_dict(repo.get('branches')).items():
+                        pass  #TODO
+                        #print(branch_name, '==========>', branch_settings)
+        else:
+            pending_updates = []
+            for deployment_name, repolist in Helper.sorted_dict(self).items():
+                for repo_name, repo in Helper.sorted_dict(repolist).items():
+                    if repo.get('updates').get('updated_refs'):
+                        pending_updates.append(repo.get('updates'))
+            if pending_updates:
+                for pending_update in pending_updates:
+                    cache_name = pending_update.get('cache').name
+
+                    for updated_ref in pending_update.get('updated_refs'):
+                        repo_name = updated_ref.get('repo')
+                        repo_url = updated_ref.get('url')
+                        repo_ref = updated_ref.get('ref')
+
+                        for deployment_name, repolist in Helper.sorted_dict(self).items():
+                            for repo_name, repo in Helper.sorted_dict(repolist).items():
+                                for branch_name, branch_settings in Helper.sorted_dict(repo.get('branches')).items():
+                                    if repo_url == branch_settings.get('url') and \
+                                       repo_ref == branch_settings.get('ref') and \
+                                       cache_name == branch_settings.get('cache', repo.get('defaults').get('cache')):
+                                        repo.sync(branch_name, repo_ref, branch_settings.get('root', ''))
 
 
 class Cache(object):
@@ -283,36 +338,6 @@ class Cache(object):
             if update_info.get('updated'):
                 changed_refs.append(update_info)
         return changed_refs
-
-
-class Deployment(object):
-    def __init__(self, reposet_settings):
-        self.base_path = reposet_settings.get('target', '/tmp/gitgather-deployment')
-        self.init()
-
-    def init(self):
-        if not os.path.isdir(self.base_path):
-            os.makedirs(self.base_path)
-
-    def update(self, repo, update_infos):
-        for repo_full, repo_update_info in update_infos.items():
-            local_branch, old_commit, new_commit = repo_update_info.get('update_info')
-            repo.git.checkout(local_branch)
-            dst_path = '{}/{}/{}/'.format(self.base_path, local_branch, repo.get('name'))
-            src_path = '{}/{}'.format(repo.git.get_path(), repo.get('deploy').get(local_branch).get('root'))
-
-            if not os.path.isdir(src_path):
-                src_path = repo.git.get_path()
-                if not os.path.isdir(src_path):
-                    raise 'w00t!'  #TODO
-
-            if not src_path.endswith('/'):
-                src_path += '/'
-            if not os.path.isdir(dst_path):
-                os.makedirs(dst_path)
-
-            print(local_branch, src_path, dst_path)
-            print(rsync('--verbose', '--archive', '--checksum', '--delete', '--exclude=.git/', src_path, dst_path))
 
 
 def main():
@@ -349,10 +374,6 @@ def main():
     logger.debug('Starting new instance of %s', program_name)
     logger.debug('Raw configuration: %s', config)
 
-    cachesets = {}
-    for cacheid, cache_settings in config.get('settings').get('cache').items():
-        cachesets[cacheid] = Cache(name=cacheid, settings=cache_settings)
-
     # collecting deployment configuration
     deployments = {}
     repolists = {}
@@ -381,64 +402,23 @@ def main():
                 continue
 
             # adding repo to repoindex
-            repoindex.add_repo(deployment_name, repoid, Repo(name=repo_name, defaults=repo_defaults))
+            repoindex.add_repo(deployment_name, repoid, Repo(name=repo_name,
+                                                             defaults=repo_defaults,
+                                                             target=deployments[deployment_name].get('target')))
             repoindex[deployment_name][repoid].add_branches(branches, deployments[deployment_name])
 
-            cache = cachesets[repoindex[deployment_name][repoid].get('defaults').get('cache')]
+            cache_name = repoindex[deployment_name][repoid].get('defaults').get('cache')
+            cache_settings = config.get('settings').get('caches').get(cache_name)
+            cache = Cache(name=cache_name, settings=cache_settings)
             cache.init()
             updated_refs = cache.update(repoindex[deployment_name][repoid])
 
             if updated_refs:
                 repoindex[deployment_name][repoid]['updates'] = {'updated_refs': updated_refs, 'cache': cache}
             elif sync_all:
-                repoindex[deployment_name][repoid]['updates'] = {'cache': cache, 'init': True}
-                #update_infos[repoid] = {deployment_name: {'updated_refs': updated_refs, 'cache': cache}}
+                repoindex[deployment_name][repoid]['updates'] = {'cache': cache}
 
-    pprint.pprint(repoindex)
-    sys.exit()
-    # deploying repos, iterate over list of updates
-    pending_repo_deployments = {}
-    for repoid, updated_repo in Helper.sorted_dict(update_infos).items():
-        # iterate over deployment definition of all updated repos
-        for updated_deployment, repo_update in Helper.sorted_dict(updated_repo).items():
-            # iterate over every single Git ref of a Git repo that has been updated
-            for updated_ref in repo_update.get('updated_refs'):
-                repo_name = updated_ref.get('repo')
-                ref_name = updated_ref.get('ref')
-                cache_name = repo_update.get('cache').name
-
-                # search for repos that be updated by the updated reference above
-                logger.debug('Searching for repos with upstream=%s, reference=%s and cache=%s to apply update', repo_name, ref_name,
-                             cache_name)
-                for deployment_name, repolist in Helper.sorted_dict(repolists).items():
-                    for repo, repo_settings in Helper.sorted_dict(repolist).items():
-                        # procede if both repos share the same cache
-                        if cache_name == repo_settings.get('defaults').get('cache', 'common'):
-                            for branch, branch_settings in Helper.sorted_dict(repo_settings.get('branches')).items():
-                                branch_settings = repo_settings.get('branches')[branch]
-
-                                match = False
-                                # TODO: use Repo() as type for repos instead of config dict (to reduce if-conditionals like the following)
-                                if isinstance(branch_settings, str):
-                                    match = ref_name == branch_settings and repo_name == repo_settings.get('defaults').get('repo')
-                                else:
-                                    match = ref_name == branch_settings.get('ref') and repo_name == branch_settings.get('repo')
-
-                                if match:
-                                    logger.debug('Going to update repo=%s (upstream=%s) of deployment definition %s', repo,
-                                                 repo_settings.get('defaults').get('repo'), deployment_name)
-                                    #pending_repo_deployments = {
-                                    #    'repo': repo_update.get('cache').repo
-                                    #}
-
-    pprint.pprint(deployments)
-    pprint.pprint(repolists)
-    sys.exit()
-
-    #for update_info in update_infos:
-    #    target = Target(reposet_settings)
-    #    if update_info:
-    #        target.update(repo, update_info)
+    repos_to_update = repoindex.sync_repos(sync_all)
 
     # Everything is done, closing now
     logger.debug('Shutting down..')

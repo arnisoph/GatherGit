@@ -3,6 +3,7 @@ python: 3.4
 env:
   - TOX_ENV=standard
   - TOX_ENV=flake8
+  - TOX_ENV=docs
 addons:
   apt:
     packages:

@@ -11,6 +11,6 @@ addons:
 install:
   - pip install tox
 script:
-  - mkdir build/
+  - mkdir -p build/
   - tox -e $TOX_ENV
   - tree -a build/

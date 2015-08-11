@@ -32,6 +32,6 @@ settings:
         handlers: [console, standard_file_handler]
   caches:
     common:
-      path: /tmp/cache
+      path: cache
     contrib:
-      path: /tmp/cache-contrib
+      path: cache-contrib

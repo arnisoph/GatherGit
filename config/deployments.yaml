@@ -1,6 +1,6 @@
 deployments:
   my_first_repo_set:
-    target: /tmp/ready-git-repos
+    target: build/ready-git-repos
     defaults:
       base_url: https://github.com
       root: states
@@ -60,7 +60,7 @@ deployments:
             ref: master
             root: opennebula
   contrib_files_repo_set:
-    target: /tmp/ready-git-repos-contrib
+    target: build/ready-git-repos-contrib
     defaults:
       base_url: https://github.com
       root: contrib
@@ -74,7 +74,7 @@ deployments:
           prod:
             ref: master
   saltstack_standard_states_env:
-    target: /tmp/saltstack/states
+    target: build/saltstack-states
     cache: common
     defaults:
       base_url: https://github.com/

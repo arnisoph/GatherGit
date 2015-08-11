@@ -9,11 +9,7 @@ TODO:
  - do metadata parsing
 """
 
-from time import sleep
 import os
-import re
-import ssl
-import sys
 import yaml
 import logging
 import logging.config
@@ -21,15 +17,21 @@ import collections
 
 # Third party libs
 import argparse
-import pprint
 from sh import rsync
 from git import Repo as _GitRepo
 from git import refs as _GitRefs
 
 
 class Helper(object):
+    """
+    Contains helper functions
+    """
+
     @staticmethod
     def create_logger(program_name, config=None):
+        """
+        Initialize logger
+        """
         if not config:
             config = {'version': 1}
         logger = logging.getLogger(program_name)
@@ -38,6 +40,9 @@ class Helper(object):
 
     @staticmethod
     def sorted_dict(var):
+        """
+        Return a sorted dict as OrderedDict
+        """
         ret = collections.OrderedDict()
         for key in sorted(list(var.keys())):
             ret[key] = var[key]
@@ -45,6 +50,10 @@ class Helper(object):
 
 
 class ConfigParser(object):
+    """
+    Parses the configuration file directory
+    """
+
     def __init__(self, confdir, config=None):
         self.confdir = confdir
 
@@ -55,6 +64,9 @@ class ConfigParser(object):
         self.parse_directory()
 
     def parse_directory(self):
+        """
+        Search for YAML files in a directory and parse them
+        """
         for dirname, subdirectories, files in os.walk(self.confdir):
             for file_name in files:
                 file_path = '{0}/{1}'.format(dirname, file_name)
@@ -73,15 +85,25 @@ class ConfigParser(object):
                                         self.config[root][repo].update(settings)
 
     def dump(self):
+        """
+        Return configuration
+        """
         return self.config
 
 
 class GitRepo(object):
+    """
+    Implements a Python interface to a Git(Pyton) repository
+    """
+
     def __init__(self, path=None):
         self.path = path
         self.git = None
 
     def init(self):
+        """
+        Initializes the Git repository
+        """
         if not os.path.isdir(self.path):
             os.makedirs(self.path)
             self.git = _GitRepo.init(self.path)
@@ -90,11 +112,14 @@ class GitRepo(object):
 
     # Refs
     def update_ref(self, remote_ref, remote_name, repo_name):
+        """
+        Download (fetch) objects and update references
+        """
         gitremote = self.get_remote(remote_name)
         gitref = None
         reporefs = self.get_refs()
-        gitreporefs = self.get_refs(raw=True)
-        already_fetched = False
+        #gitreporefs = self.get_refs(raw=True)
+        #already_fetched = False
         ret = {
             'update_info': None,
             'repo': repo_name,
@@ -110,9 +135,9 @@ class GitRepo(object):
             if remote_ref not in reporefs:
                 ret['updated'] = True
 
-            fetch_info = gitremote.fetch()
+            gitremote.fetch()
             reporefs = self.get_refs()
-            gitreporefs = self.get_refs(raw=True)
+            self.get_refs(raw=True)
             gitref = self.get_ref(remote_ref)
 
             if srcref not in reporefs:
@@ -149,6 +174,9 @@ class GitRepo(object):
         return ret
 
     def get_refs(self, raw=False):
+        """
+        Return all references in a Git repository
+        """
         gitrefs = []
         for gitref in self.git.refs:
             if raw:
@@ -158,30 +186,42 @@ class GitRepo(object):
         return gitrefs
 
     def get_ref(self, name):
+        """
+        Get a single GitPython object of a repo reference
+        """
         refs = self.get_refs(raw=True)
         for ref in refs:
             if str(name) == str(ref):
                 return ref
 
     def checkout(self, branch):
+        """
+        Ceckout references like heads (branches) and tags
+        """
         gitref = self.get_ref(branch)
         if isinstance(gitref, _GitRefs.tag.TagReference):
-            return self.git.git.checkout(gitref.commit)  #TODO this is only a workaround
+            return self.git.git.checkout(gitref.commit)  # TODO this is only a workaround
         elif isinstance(gitref, _GitRefs.head.Head):
             return gitref.checkout(force=True)
         else:
-            print(type(gitref))
-            raise 'TODO'
+            print(type(gitref))  # TODO
+            raise
 
     # Remotes
     def add_remotes(self, remotes):
+        """
+        Add remotes to a repository
+        """
         for remote_name, remote_settings in remotes.items():
             if remote_name not in self.get_remotes():
-                gitremote = self.git.create_remote(remote_name, remote_settings.get('url'))  #TOOD
+                gitremote = self.git.create_remote(remote_name, remote_settings.get('url'))  # TOOD
                 self.git.git.config('--add', 'remote.{}.fetch'.format(remote_name), '+refs/tags/*:refs/tags/*')
                 gitremote.fetch()
 
     def get_remote(self, name):
+        """
+        Get a Git reference object
+        """
         i = 0
         for remote in self.git.remotes:
             if str(remote) == name:
@@ -189,6 +229,9 @@ class GitRepo(object):
             i = i + 1
 
     def get_remotes(self):
+        """
+        Get a list of Git remotes
+        """
         remotes = []
         for remote in self.git.remotes:
             remotes.append(str(remote))
@@ -196,22 +239,38 @@ class GitRepo(object):
 
     # Filesystem
     def set_path(self, path):
+        """
+        Set the repository file system path
+        """
         self.path = path
 
     def get_path(self):
+        """
+        Get the repository file system path
+        """
         return self.path
 
 
 class Repo(dict):
-    def __init__(self, name, branches=None, defaults=None, path=None, target=None, gitrepo=None):
-        self['name'] = name
-        self['defaults'] = defaults or {}
-        self['branches'] = branches or {}
+    """Represents a repository/ module
+    """
+
+    def __init__(self):
+        """
+        Constructor initializing instance variables
+        """
+        dict.__init__(self)
+        self['name'] = ''
+        self['defaults'] = {}
+        self['branches'] = {}
         self['updates'] = {}
-        self['target'] = target or '/tmp/gitgather-deployment'
-        self.git = gitrepo or GitRepo()
+        self['target'] = '/tmp/gitgather-deployment'
+        self.git = GitRepo()
 
     def add_branches(self, branches, deployment_settings):
+        """
+        Add branches to our Repo object
+        """
         for branch, _branch_settings in branches.items():
             branch_name = str(branch)
             branch_settings = _branch_settings
@@ -242,6 +301,9 @@ class Repo(dict):
                 self['branches'][branch_name]['url'] = url
 
     def sync(self, local_branch, remote_branch, root=''):
+        """
+        Sync/ update/ deploy a repository
+        """
         src_path = '{}/{}'.format(self.git.get_path(), root)
         dst_path = '{}/{}/{}/'.format(self.get('target'), local_branch, self.get('name'))
 
@@ -254,35 +316,43 @@ class Repo(dict):
 
         self.git.checkout(remote_branch)
 
-        print(rsync('--verbose', '--archive', '--checksum', '--delete', '--exclude=.git/', src_path, dst_path))  #TODO
+        print(rsync('--verbose', '--archive', '--checksum', '--delete', '--exclude=.git/', src_path, dst_path))  # TODO
 
 
 class Repoindex(dict):
-    def __init__(self, index=None):
-        self = index or {}
+    """
+    Maintains a list of repositories
+    """
+
+    def __init__(self):
+        dict.__init__(self)
 
     def add_repo(self, deployment_name, repo_name, repo):
+        """
+        Add a repo to the index
+        """
         if deployment_name not in self.keys():
             self[deployment_name] = {}
         if repo_name not in self[deployment_name].keys():
             self[deployment_name][repo_name] = self.verify_repo(repo)
         else:
-            raise 'TOOD'
+            raise
 
     def verify_repo(self, repo):
+        """
+        Verify and correct the attributes of a repo object
+        """
         if not repo.get('defaults').get('cache'):
             repo['defaults']['cache'] = 'common'
         return repo
 
     def sync_repos(self, sync_all=False):
-        ret = {}
-
         if sync_all:
             for deployment_name, repolist in Helper.sorted_dict(self).items():
                 for repo_name, repo in Helper.sorted_dict(repolist).items():
                     #print(deployment_name, '=====>', repo.get('name'), repo.get('updates'))
                     for branch_name, branch_settings in Helper.sorted_dict(repo.get('branches')).items():
-                        pass  #TODO
+                        pass  # TODO
                         #print(branch_name, '==========>', branch_settings)
         else:
             pending_updates = []
@@ -318,10 +388,16 @@ class Cache(object):
         self.repo = repo
 
     def init(self):
+        """
+        Initialize cache
+        """
         if not os.path.isdir(self.path):
             os.makedirs(self.path)
 
     def update(self, repo):
+        """
+        Update the cache, e.g. the Git repository in the file system
+        """
         self.repo = repo
         branches = self.repo.get('branches')
         changed_refs = []
@@ -390,7 +466,6 @@ def main():
         repolists[deployment_name].update(repos)
 
     # updating caches
-    update_infos = {}
     for deployment_name, repolist in Helper.sorted_dict(repolists).items():
         for repoid, repo_settings in Helper.sorted_dict(repolist).items():
             repo_name = repo_settings.get('name', repoid)
@@ -402,10 +477,12 @@ def main():
                 continue
 
             # adding repo to repoindex
-            repoindex.add_repo(deployment_name, repoid, Repo(name=repo_name,
-                                                             defaults=repo_defaults,
-                                                             target=deployments[deployment_name].get('target')))
-            repoindex[deployment_name][repoid].add_branches(branches, deployments[deployment_name])
+            repo = Repo()
+            repo['name'] = repo_name
+            repo['defaults'] = repo_defaults
+            repo['target'] = deployments[deployment_name].get('target')
+            repo.add_branches(branches, deployments[deployment_name])
+            repoindex.add_repo(deployment_name, repoid, repo)
 
             cache_name = repoindex[deployment_name][repoid].get('defaults').get('cache')
             cache_settings = config.get('settings').get('caches').get(cache_name)
@@ -418,7 +495,7 @@ def main():
             elif sync_all:
                 repoindex[deployment_name][repoid]['updates'] = {'cache': cache}
 
-    repos_to_update = repoindex.sync_repos(sync_all)
+    repoindex.sync_repos(sync_all)
 
     # Everything is done, closing now
     logger.debug('Shutting down..')

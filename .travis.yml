@@ -1,7 +1,7 @@
 language: python
 python:
-  - '2.7'
   - '3.4'
+  - '2.7'
 env:
   - TOX_ENV=standard
   - TOX_ENV=flake8

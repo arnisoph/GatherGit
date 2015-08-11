@@ -22,4 +22,8 @@ GatherGit
 .. image:: https://travis-ci.org/bechtoldt/GatherGit.svg?branch=master
        :target: https://travis-ci.org/bechtoldt/GatherGit
 
+.. image:: https://img.shields.io/pypi/dm/GatherGit.svg
+    :target: https://pypi.python.org/pypi/GatherGit
+    :alt: Number of Pypi package downloads
+
 Gather Git Repositories together to one large file tree

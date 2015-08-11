@@ -20,22 +20,22 @@ deployments:
           dev: master # branch
           prod:
             ref: 0.8.0 # tag
-      xfoo:
-        defaults:
-          repo: arbe/amytest
-          url: file:///tmp/mytest
-        branches:
-          dev: master
-      test:
-        defaults:
-          repo: arbe/amytest
-          url: file:///tmp/mytest
-        branches:
-          prod:
-            ref: master
-            root: w00t/
-          qa: b
-          dev: dev
+#      xfoo:
+#        defaults:
+#          repo: arbe/amytest
+#          url: file:///tmp/mytest
+#        branches:
+#          dev: master
+#      test:
+#        defaults:
+#          repo: arbe/amytest
+#          url: file:///tmp/mytest
+#        branches:
+#          prod:
+#            ref: master
+#            root: w00t/
+#          qa: b
+#          dev: dev
       skeleton:
         defaults:
           repo: bechtoldt/saltstack-skeleton-formula

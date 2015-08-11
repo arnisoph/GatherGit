@@ -77,7 +77,7 @@ deployments:
     target: build/saltstack-states
     cache: common
     defaults:
-      base_url: https://github.com/
+      base_url: https://github.com
     repos:
       amavis:
         defaults:

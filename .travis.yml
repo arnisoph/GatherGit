@@ -3,8 +3,12 @@ python: 3.4
 env:
   - TOX_ENV=standard
   - TOX_ENV=flake8
+addons:
+  apt:
+    packages:
+      - time
+      - tree
 install:
-  - apt-get install tree
   - pip install tox
 script:
   - mkdir build/

@@ -350,10 +350,8 @@ class Repoindex(dict):
         if sync_all:
             for deployment_name, repolist in Helper.sorted_dict(self).items():
                 for repo_name, repo in Helper.sorted_dict(repolist).items():
-                    #print(deployment_name, '=====>', repo.get('name'), repo.get('updates'))
                     for branch_name, branch_settings in Helper.sorted_dict(repo.get('branches')).items():
                         pass  # TODO
-                        #print(branch_name, '==========>', branch_settings)
         else:
             pending_updates = []
             for deployment_name, repolist in Helper.sorted_dict(self).items():

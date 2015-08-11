@@ -4,7 +4,9 @@ env:
   - TOX_ENV=standard
   - TOX_ENV=flake8
 install:
+  - apt-get install tree
   - pip install tox
 script:
+  - mkdir build/
   - tox -e $TOX_ENV
   - tree -a build/

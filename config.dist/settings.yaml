@@ -18,7 +18,7 @@ settings:
             class: logging.handlers.RotatingFileHandler
             level: DEBUG
             formatter: styled
-            filename: gather.log
+            filename: ../log/gather.log
             maxBytes: 10485760 # 10MB
             backupCount: 20
             encoding: utf8
@@ -32,6 +32,6 @@ settings:
         handlers: [console, standard_file_handler]
   caches:
     common:
-      path: cache
+      path: ../cache
     contrib:
-      path: cache-contrib
+      path: ../cache-contrib

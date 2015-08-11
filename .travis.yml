@@ -6,7 +6,6 @@ env:
 addons:
   apt:
     packages:
-      - time
       - tree
 install:
   - pip install tox

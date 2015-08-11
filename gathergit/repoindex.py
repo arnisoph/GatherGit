@@ -2,12 +2,6 @@
 # -*- coding: utf-8 -*-
 # vim: ts=4 sw=4 et
 
-import logging
-
-# Third party libs
-from git import Repo as _GitRepo
-from git import refs as _GitRefs
-
 from misc import Helper
 
 

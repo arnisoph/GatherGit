@@ -3,10 +3,7 @@
 # vim: ts=4 sw=4 et
 """gathergit
 
-A description.
-
-TODO:
- - do metadata parsing
+Gather Git Repositories together to one large file tree
 """
 
 # Third party libs

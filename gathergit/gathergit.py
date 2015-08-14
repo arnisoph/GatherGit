@@ -52,7 +52,7 @@ def main():
     # collecting deployment configuration
     deployments = {}
     repolists = {}
-    repoindex = Repoindex()
+    repoindex = Repoindex(logger)
     for deployment_name, deployment_settings in config.get('deployments', {}).items():
         repos = deployment_settings.get('repos')
 
@@ -76,7 +76,7 @@ def main():
                 continue
 
             # adding repo to repoindex
-            repo = Repo()
+            repo = Repo(logger)
             repo['name'] = repo_name
             repo['defaults'] = repo_defaults
             repo['target'] = deployments[deployment_name].get('target')
@@ -85,7 +85,7 @@ def main():
 
             cache_name = repoindex[deployment_name][repoid].get('defaults').get('cache')
             cache_settings = config.get('settings').get('caches').get(cache_name)
-            cache = Cache(name=cache_name, settings=cache_settings)
+            cache = Cache(name=cache_name, settings=cache_settings, logger=logger)
             cache.init()
             updated_refs = cache.update(repoindex[deployment_name][repoid])
 

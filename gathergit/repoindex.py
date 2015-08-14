@@ -10,8 +10,9 @@ class Repoindex(dict):
     Maintains a list of repositories
     """
 
-    def __init__(self):
+    def __init__(self, logger):
         dict.__init__(self)
+        self.logger = logger
 
     def add_repo(self, deployment_name, repo_name, repo):
         """
@@ -34,6 +35,7 @@ class Repoindex(dict):
 
     def sync_repos(self, sync_all=False):
         if sync_all:
+            self.logger.debug('Going to sync all repos from scratch (sync_all=True)')
             for deployment_name, repolist in Helper.sorted_dict(self).items():
                 for repo_name, repo in Helper.sorted_dict(repolist).items():
                     for branch_name, branch_settings in Helper.sorted_dict(repo.get('branches')).items():

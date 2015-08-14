@@ -6,6 +6,12 @@ deployments:
       root: states
       cache: common
     repos:
+      gathergit:
+        defaults:
+          repo: bechtoldt/gathergit
+          root: gathergit
+        branches:
+          test: master
       alternatives:
         defaults:
           repo: puppet-community/puppet-alternatives

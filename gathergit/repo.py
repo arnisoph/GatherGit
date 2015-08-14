@@ -14,7 +14,7 @@ class Repo(dict):
     """Represents a repository/ module
     """
 
-    def __init__(self):
+    def __init__(self, logger):
         """
         Constructor initializing instance variables
         """
@@ -25,6 +25,7 @@ class Repo(dict):
         self['updates'] = {}
         self['target'] = '/tmp/gitgather-deployment'
         self.git = GitRepo()
+        self.logger = logger
 
     def add_branches(self, branches, deployment_settings):
         """
@@ -73,6 +74,12 @@ class Repo(dict):
         if not dst_path.endswith('/'):
             dst_path += '/'
 
+        self.logger.debug('Preparing repo sync %s by checking out ref %s', self['name'], remote_branch)
         self.git.checkout(remote_branch)
 
-        print(rsync('--verbose', '--archive', '--checksum', '--delete', '--exclude=.git/', src_path, dst_path))  # TODO
+        self.logger.info('Synchronizing repo using source path %s and destination path %s', src_path, dst_path)
+
+        rsync_args = ['--verbose', '--archive', '--checksum', '--delete', '--exclude=.git/', src_path, dst_path]
+
+        self.logger.debug('Running rsync with the arguments %s', rsync_args)
+        rsync(rsync_args)

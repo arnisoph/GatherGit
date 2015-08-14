@@ -61,4 +61,5 @@ class Repoindex(dict):
                                     if repo_url == branch_settings.get('url') and \
                                        repo_ref == branch_settings.get('ref') and \
                                        cache_name == branch_settings.get('cache', repo.get('defaults').get('cache')):
-                                        repo.sync(branch_name, repo_ref, branch_settings.get('root', ''))
+                                        root = branch_settings.get('root', repo.get('defaults').get('root', ''))
+                                        repo.sync(branch_name, repo_ref, root)

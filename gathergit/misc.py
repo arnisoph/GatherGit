@@ -48,12 +48,14 @@ class ConfigParser(object):
             config = {'settings': {}, 'deployments': {}}
         self.config = config
 
-        self.parse_directory()
-
     def parse_directory(self):
         """
         Search for YAML files in a directory and parse them
         """
+        if not os.path.isdir(self.confdir):
+            self.config = None
+            return self.config
+
         for dirname, subdirectories, files in os.walk(self.confdir):
             for file_name in files:
                 file_path = '{0}/{1}'.format(dirname, file_name)

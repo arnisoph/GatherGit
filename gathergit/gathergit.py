@@ -16,9 +16,9 @@ from repoindex import Repoindex
 
 
 def main():
-    version = '0.0.1'
+    version = '0.0.2'
     program_name = 'gathergit'
-    parser = argparse.ArgumentParser(prog=program_name, description='A description')
+    parser = argparse.ArgumentParser(prog=program_name, description='Gather Git Repositories together to one large file tree')
 
     # general args
     parser.add_argument('-V', action='version', version='%(prog)s {version}'.format(version=version))
@@ -39,7 +39,12 @@ def main():
 
     # config parsing
     cfg_parser = ConfigParser(confdir)
+    cfg_parser.parse_directory()
     config = cfg_parser.dump()
+
+    if not config:
+        print('Sorry, could not find config directory \'{}\'. Please specify an existing one using --condir CONFDIR.\n'.format(confdir))
+        return 127
 
     # logging
     logconfig = config.get('settings', {}).get('logging', {})
@@ -98,6 +103,7 @@ def main():
 
     # Everything is done, closing now
     logger.debug('Shutting down..')
+    return 0
 
 
 if __name__ == '__main__':

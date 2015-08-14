@@ -5,7 +5,7 @@
 from distutils.core import setup
 
 setup(name='GatherGit',
-      version='0.0.1',
+      version='0.0.2',
       description='Gather Git Repositories together to one large file tree',
       author='Arnold Bechtoldt',
       author_email='mail@arnoldbechtoldt.com',

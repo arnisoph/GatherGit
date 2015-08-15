@@ -74,6 +74,8 @@ def main():
         for repoid, repo_settings in Helper.sorted_dict(repolist).items():
             repo_name = repo_settings.get('name', repoid)
             repo_defaults = repo_settings.get('defaults', {})
+            if not repo_defaults.get('root') and deployments[deployment_name].get('defaults', {}).get('root'):
+                repo_defaults['root'] = deployments[deployment_name].get('defaults').get('root')
             branches = repo_settings.get('branches')
             if branches is None:
                 logger.info('Skipping repo %s of deployment definition %s, is doesn\'t have any branches defined', repo_name,

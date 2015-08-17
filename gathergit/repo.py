@@ -7,7 +7,7 @@ import os
 # Third party libs
 from sh import rsync
 
-from gitrepo import GitRepo
+from gathergit.gitrepo import GitRepo
 
 
 class Repo(dict):

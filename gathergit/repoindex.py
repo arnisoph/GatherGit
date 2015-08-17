@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # vim: ts=4 sw=4 et
 
-from misc import Helper
+from gathergit.misc import Helper
 
 
 class Repoindex(dict):

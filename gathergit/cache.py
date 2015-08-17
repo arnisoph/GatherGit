@@ -4,7 +4,7 @@
 
 import os
 
-from misc import Helper
+from gathergit.misc import Helper
 
 
 class Cache(object):

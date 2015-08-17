@@ -6,17 +6,21 @@
 Gather Git Repositories together to one large file tree
 """
 
+import sys
+
+sys.path.append('.')
+
 # Third party libs
 import argparse
 
-from cache import Cache
-from misc import (Helper, ConfigParser)
-from repo import Repo
-from repoindex import Repoindex
+from gathergit.cache import Cache
+from gathergit.misc import (Helper, ConfigParser)
+from gathergit.repo import Repo
+from gathergit.repoindex import Repoindex
 
 
 def main():
-    version = '0.0.2'
+    version = '0.0.3'
     program_name = 'gathergit'
     parser = argparse.ArgumentParser(prog=program_name, description='Gather Git Repositories together to one large file tree')
 
